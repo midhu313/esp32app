@@ -1,6 +1,6 @@
 #ifndef MQTTCLIENT_H_
 #define MQTTCLIENT_H_
-//mosquitto_pub -h 45.79.122.60 -t "dgps/command/stod" -m "{\"cmd\":\"get,survey\"}"
+
 class MQTTClient{
     public:
         // Topic callback signature: topic, data pointer, data length
