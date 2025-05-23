@@ -12,6 +12,7 @@ static uint8_t own_addr_type;
 static struct ble_gatt_svc_def gatt_service[1];
 static struct ble_gatt_chr_def *gatt_chrs = NULL;
 
+static struct DeviceCommand dev_rsp;
 
 BLEManager BLEManager::s_instance;
 
@@ -30,8 +31,8 @@ BLEManager* BLEManager::getInstance(){
 
 
 void BLEManager::processedCommandResponseCallback(const DeviceCommand& rsp){
-	ESP_LOGE(tag,"on processedCommandResponseCallback");
-	ESP_LOGE(tag,"Msg:%s",rsp.value);
+	dev_rsp = rsp;
+	ESP_LOGI(tag,"Response:%s",dev_rsp.value); 
 }
 
 /**
@@ -58,9 +59,13 @@ int BLEManager::gatt_svc_access(uint16_t conn_handle, uint16_t attr_handle,struc
 		case BLE_GATT_ACCESS_OP_READ_CHR:
 			if (conn_handle != BLE_HS_CONN_HANDLE_NONE) {
 				ESP_LOGI(tag,"Characteristic-%d read :- conn_handle=%d attr_handle=%d",(type == BTCharType::CHAR_1)?1:2,conn_handle, attr_handle);
-            	uint8_t data[] = "hello world";
-				rc = os_mbuf_append(ctxt->om,&data,sizeof(data)-1);
-				return rc == 0 ? 0 : BLE_ATT_ERR_INSUFFICIENT_RES;
+            	if(type==dev_rsp.char_type){
+					rc = os_mbuf_append(ctxt->om,dev_rsp.value,strlen(dev_rsp.value));
+				}else{
+					rc = os_mbuf_append(ctxt->om,nullptr,0);
+				}
+				memset(&dev_rsp,0,sizeof(DeviceCommand));
+			return rc == 0 ? 0 : BLE_ATT_ERR_INSUFFICIENT_RES;
 			}
     	break;
 		case BLE_GATT_ACCESS_OP_WRITE_CHR:

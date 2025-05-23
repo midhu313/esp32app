@@ -51,15 +51,19 @@
 #include "esp_event.h"
 #include "esp_wifi.h"
 #include "esp_netif.h"
+#include "esp_app_desc.h"
+#include "esp_ota_ops.h"
 #include "cJSON.h"
-
+#include "mqtt_client.h"
 
 #include "defines.h"
 #include "clockmanager.h"
 #include "timerevent.h"
 #include "configmanager.h"
+#include "taskmanager.h"
 #include "cmdmanager.h"
 #include "blemanager.h"
 #include "wifimanager.h"
+#include "mqttclient.h"
 
 #endif /* !INCLUDES_H_ */

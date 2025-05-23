@@ -27,13 +27,42 @@ class CmdManager{
         static StackType_t  task_stack[STACK_SIZE];
 
         std::mutex m_cb_mutex;
-
-        
-
         std::function<void(const DeviceCommand&)> callback;
+
+        ConfigManager *cfg;
+        TaskManager *tmngr;
 
         void sendCommandResponse(const DeviceCommand &rsp);
         
+        /**
+         * @brief Update configuration for wifi. 
+         * 
+         *     Command Format: 
+         *          - when DHCP:`{"cmd":1,"ssid":"<ssid>","psk":"psk","static":0}`
+         *          - when Static: `{"cmd":1,"ssid":"<ssid>","psk":"psk","static":1,"ip":"<ip>","nm":"<nm>","gw":"<gw>"}`
+         * 
+         * @param object JSON Object
+         * @return esp_err_t ESP_OK on success
+         */
+        esp_err_t configure_wifi_params(cJSON *object);
+        /**
+         * @brief Update configuration for MQTT Params.
+         *        
+         *      Command Format: `{"cmd":3,"ip":"<ip>","port":<port>}`         
+         * @param object JSON Object 
+         * @return esp_err_t ESP_OK on success
+         */
+        esp_err_t configure_mqtt_params(cJSON *object);
+
+        /**
+         * @brief Read application configured and returns in expected JSON format
+         * 
+         * @param cmd_id Command ID
+         * @param value Return String in the JSON Format `{"cmd":cmd_id,"param_name1":"param1_value"...}`
+         * @return esp_err_t 
+         */
+        esp_err_t read_configuration(int cmd_id,char * value);
+
     public:
         
         static CmdManager *getInstance();
