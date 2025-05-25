@@ -31,6 +31,7 @@ class MQTTClient{
         std::unique_ptr<TimerEvent> m_reconnect_timer;
         ConnState m_wifi_state;
 
+        void subscribe_to_topics();
         /*
         * @brief Event handler registered to receive MQTT events
         *
@@ -42,9 +43,6 @@ class MQTTClient{
         * @param event_data The data for the event, esp_mqtt_event_handle_t.
         */
         static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_t event_id, void *event_data);
-
-        void handle_event(esp_mqtt_event_handle_t event);
-
 };
 
 #endif /* !MQTTCLIENT_H_ */

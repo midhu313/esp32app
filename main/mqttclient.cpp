@@ -2,12 +2,18 @@
 
 static const char * tag = "MQTT";
 
+static const esp_mqtt_topic_t subscribe_topic_list[]={
+    {.filter = "esp/test/topic1",.qos = 0},
+    {.filter = "esp/test/topic1",.qos = 1},
+};
+
 static char broker_url[100];
 
 MQTTClient MQTTClient::s_instance;
 
 MQTTClient::MQTTClient():m_client(nullptr),m_wifi_state(ConnState::Unknown){
-
+    wifimngr = WiFiManager::getInstance();
+    clk = ClockManager::getInstance();
 }
 
 MQTTClient::~MQTTClient(){
@@ -74,18 +80,21 @@ void MQTTClient::set_message_handler(MessageHandler handler){
     msg_handler = handler;
 }
 
+void MQTTClient::subscribe_to_topics(){
+    int status = esp_mqtt_client_subscribe_multiple(m_client,subscribe_topic_list,2);
+    if(status<0)
+        ESP_LOGE(tag,"Subscribing topics : %s",(status==-1)?"Failed":" Full outbox");
+    else
+        ESP_LOGI(tag,"Successfully subscribed to topics");
+}
+
 void MQTTClient::mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_t event_id, void *event_data){
     MQTTClient *self = static_cast<MQTTClient *>(handler_args);
     esp_mqtt_event_handle_t event = static_cast<esp_mqtt_event_handle_t>(event_data);
-    self->handle_event(event);
-    
-}
-
-void handle_event(esp_mqtt_event_handle_t event){
-    
     switch(event->event_id){
         case MQTT_EVENT_CONNECTED:
             ESP_LOGI(tag, "MQTT_EVENT_CONNECTED");
+            self->subscribe_to_topics();            
             break;
         case MQTT_EVENT_DISCONNECTED:
             ESP_LOGW(tag, "MQTT_EVENT_DISCONNECTED");
@@ -101,11 +110,9 @@ void handle_event(esp_mqtt_event_handle_t event){
             break;
         case MQTT_EVENT_DATA:
             ESP_LOGI(tag, "MQTT_EVENT_DATA topic=%.*s len=%d", event->topic_len, event->topic, event->data_len);
-        
-            
-            // if(msg_handler) {
-                // msg_handler(event->topic,reinterpret_cast<const uint8_t*>(event->data),event->data_len);
-            // }
+            if(self->msg_handler) {
+                self->msg_handler(event->topic,reinterpret_cast<const uint8_t*>(event->data),event->data_len);
+            }
             break;
         case MQTT_EVENT_ERROR:
             ESP_LOGE(tag, "MQTT_EVENT_ERROR");
