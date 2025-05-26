@@ -53,27 +53,50 @@ void CmdManager::taskProcessNewCommand(void *args){
     auto *self = static_cast<CmdManager*>(args);
     struct DeviceCommand cmd;
     while(1){
+        /* Modify this section as required*/
         if(xQueueReceive(self->queue_handle,&cmd,portMAX_DELAY) == pdTRUE){
             ESP_LOGI(tag,"Got Packet:- msg:%s",cmd.value);
             memset(&dev_rsp,0,sizeof(DeviceCommand));
             dev_rsp.source = cmd.source;
-            dev_rsp.char_type = cmd.char_type;
-            if(cmd.char_type == BTCharType::CHAR_1){
-                self->manage_incoming_char1_commands(cmd);
-                //Form JSON Acknowledgement when command is SET
-                if(dev_rsp.type == CmdType::SET){
-                    cJSON *resp_obj = cJSON_CreateObject();
-                    char *ack_string=(char*)"";
-                    cJSON_AddNumberToObject(resp_obj,"cmd",dev_rsp.command);
-                    cJSON_AddNumberToObject(resp_obj,"status",(dev_rsp.status==ESP_OK)?1:0);
-                    ack_string = cJSON_PrintUnformatted(resp_obj);
-                    strcpy(dev_rsp.value,ack_string);
-                    delete(resp_obj);
-                    cJSON_free(ack_string);
+            if(cmd.source == CmdSource::BT){
+                dev_rsp.char_type = cmd.char_type;
+                if(cmd.char_type == BTCharType::CHAR_1){
+                    self->manage_incoming_char1_commands(cmd);
+                    //Form JSON Acknowledgement when command is SET
+                    if(dev_rsp.type == CmdType::SET){
+                        cJSON *resp_obj = cJSON_CreateObject();
+                        char *ack_string=(char*)"";
+                        cJSON_AddNumberToObject(resp_obj,"cmd",dev_rsp.command);
+                        cJSON_AddNumberToObject(resp_obj,"status",(dev_rsp.status==ESP_OK)?1:0);
+                        ack_string = cJSON_PrintUnformatted(resp_obj);
+                        strcpy(dev_rsp.value,ack_string);
+                        delete(resp_obj);
+                        cJSON_free(ack_string);
+                    }
+                }else{
+                    self->manage_incoming_char2_commands(cmd);
+                    /*Handle as required*/
                 }
-            }else{
-                self->manage_incoming_char2_commands(cmd);
-                /*Handle as required*/
+            }else if(cmd.source == CmdSource::MQTT){
+                if(!strcmp((const char *)cmd.mqtt_topic,(const char *)"esp/test/topic1")){
+                    ESP_LOGI(tag,"Char-1 Command-1");
+                    self->manage_incoming_char1_commands(cmd);
+                    //Form JSON Acknowledgement when command is SET
+                    if(dev_rsp.type == CmdType::SET){
+                        cJSON *resp_obj = cJSON_CreateObject();
+                        char *ack_string=(char*)"";
+                        cJSON_AddNumberToObject(resp_obj,"cmd",dev_rsp.command);
+                        cJSON_AddNumberToObject(resp_obj,"status",(dev_rsp.status==ESP_OK)?1:0);
+                        ack_string = cJSON_PrintUnformatted(resp_obj);
+                        strcpy(dev_rsp.value,ack_string);
+                        delete(resp_obj);
+                        cJSON_free(ack_string);
+                    }
+                }else if(!strcmp((const char *)cmd.mqtt_topic,(const char *)"esp/test/topic2")){
+                    ESP_LOGI(tag,"Char-2 Command");
+                    self->manage_incoming_char2_commands(cmd);
+                    /*Handle as required*/
+                }
             }
             self->sendCommandResponse(dev_rsp);    
         }
@@ -129,7 +152,7 @@ void CmdManager::manage_incoming_char2_commands(const struct DeviceCommand &cmd_
         //Invalid JSON Command
     }
 }
-
+//MPJHS B1sm1ll@h
 esp_err_t CmdManager::configure_wifi_params(cJSON *object){
     char ssid[32]="", psk[64]="", ip[MAX_IP_SIZE]="", mask[MAX_IP_SIZE]="",gtw[MAX_IP_SIZE]="";
     int isstatic = 0;

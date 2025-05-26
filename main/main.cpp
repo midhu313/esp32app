@@ -42,6 +42,9 @@ void app_main(void){
 		}
 		wifi->connect();
 		tm->add_task(TaskID::NTP_UPDATE);
+		MQTTClient *mq_client;
+		mq_client = MQTTClient::getInstance();
+		mq_client->initialize(cfg->configs.mqip,cfg->configs.mqport);
+		// tm->update_mqtt_req(true);
 	}
-	/*Start MQTT Client*/
 }

@@ -1,7 +1,6 @@
 #ifndef TASKMANAGER_H_
 #define TASKMANAGER_H_
 
-#include "wifimanager.h"
 
 enum class TaskID : int {
     DEV_REBOOT,//Execute Device Reboot Command
@@ -18,8 +17,8 @@ class TaskManager{
         static TaskManager* getInstance();
         
         void initialize();
-        void add_task(TaskID id);
-        void remove_task(TaskID id);   
+        uint8_t add_task(TaskID id);
+        void remove_task(TaskID id);
     
     private:
         static TaskManager s_instance;
@@ -31,6 +30,7 @@ class TaskManager{
         
         WiFiManager *wifimngr;
         ClockManager *clk;
+
         std::unique_ptr<TimerEvent> m_ntp_update_timer;
       
         static constexpr const char * TASK_NAME = "ManagerTask";
@@ -45,14 +45,14 @@ class TaskManager{
         std::vector<TaskEntry> p_tasks;
 
         ConnState m_wifi_state;
-        uint64_t wifi_ev_time;
-
+    
         const char* get_task_name(TaskID t);
         static void processManagerTask(void *args);
         void execute_task_timesync_from_NTPServer();
         void execute_task_device_reboot(uint64_t rx_time);
 
         void wifi_event_handler(esp_event_base_t event_base,int32_t event_id,void* event_data);
+
         void timeout_event_handle_ntp_update();
 };
 

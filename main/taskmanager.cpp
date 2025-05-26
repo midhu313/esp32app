@@ -10,7 +10,6 @@ StackType_t  TaskManager::task_stack[TaskManager::STACK_SIZE];
 TaskManager::TaskManager() : t_handle(nullptr),m_wifi_state(ConnState::Disconnected){
     wifimngr = WiFiManager::getInstance();
     clk = ClockManager::getInstance();
-    
     t_handle = xTaskCreateStaticPinnedToCore(
         &TaskManager::processManagerTask,TASK_NAME,STACK_SIZE,this,PRIORITY,task_stack,&task_buff,1);
     if(!t_handle){
@@ -38,14 +37,22 @@ void TaskManager::initialize(){
     });
 }
 
-void TaskManager::add_task(TaskID id){
+uint8_t TaskManager::add_task(TaskID id){
     {
         uint64_t cur_time = clk->get_current_time_in_ms();
         std::lock_guard<std::mutex> lock(m_mutex);
+        auto it = std::find_if(p_tasks.begin(), p_tasks.end(),[id](auto &e){ 
+            return e.id == id;
+        });
+        if(it != p_tasks.end()) {
+            ESP_LOGW(tag,"Failed to add Task:%s :- Duplicate detected!",get_task_name(id));
+            return ESP_FAIL;
+        }
         p_tasks.push_back({id,cur_time});
-        ESP_LOGI(tag,"Adding new Task:%s pending %u",get_task_name(id),(unsigned)p_tasks.size());
+        ESP_LOGI(tag,"Adding new Task:%s Total:%u",get_task_name(id),(unsigned)p_tasks.size());
     }
     xTaskNotifyGive(t_handle);
+    return ESP_OK;
 }
 
 void TaskManager::remove_task(TaskID id){
@@ -99,15 +106,12 @@ void TaskManager::processManagerTask(void *args){
 }
 
 void TaskManager::wifi_event_handler(esp_event_base_t event_base,int32_t event_id,void* event_data){
-    if((event_base == WIFI_EVENT)&&(event_id == WIFI_EVENT_STA_CONNECTED)){
-        ESP_LOGI(tag,"WiFi Connected");
-        m_wifi_state = ConnState::Connected;
-        wifi_ev_time = clk->get_current_time_in_ms();
-    }else if((event_base == WIFI_EVENT)&&(event_id == WIFI_EVENT_STA_DISCONNECTED)){
-        ESP_LOGI(tag,"WiFi DIsconnected");
+    if((event_base == WIFI_EVENT)&&(event_id == WIFI_EVENT_STA_DISCONNECTED)){
+        ESP_LOGI(tag,"WiFi Disconnected");
         m_wifi_state = ConnState::Disconnected;
-        wifi_ev_time = clk->get_current_time_in_ms();
-
+    }else if(event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP){
+        ESP_LOGI(tag,"WiFi Connected & Got IP Address");
+        m_wifi_state = ConnState::Connected;
     }
 }
 
@@ -127,7 +131,7 @@ void TaskManager::execute_task_timesync_from_NTPServer(){
 }
 
 void TaskManager::execute_task_device_reboot(uint64_t rx_time){
-    uint64_t time_now = clk->get_current_time_in_ms();
+        uint64_t time_now = clk->get_current_time_in_ms();
     if((time_now-rx_time)>=2000){
         remove_task(TaskID::DEV_REBOOT);
         ESP_LOGW(tag,"Rebooting Device Now..");

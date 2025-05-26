@@ -1,6 +1,7 @@
 #ifndef CMDMANAGER_H_
 #define CMDMANAGER_H_
 
+
 #ifdef __cplusplus
 extern "C" {
 #endif

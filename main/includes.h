@@ -6,6 +6,7 @@
 #include <cstring>
 #include <vector>
 #include <list>
+#include <queue>
 #include <deque>
 #include <algorithm>
 #include <mutex>
@@ -60,10 +61,10 @@
 #include "clockmanager.h"
 #include "timerevent.h"
 #include "configmanager.h"
+#include "wifimanager.h"
 #include "taskmanager.h"
 #include "cmdmanager.h"
 #include "blemanager.h"
-#include "wifimanager.h"
 #include "mqttclient.h"
 
 #endif /* !INCLUDES_H_ */

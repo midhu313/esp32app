@@ -32,7 +32,9 @@ BLEManager* BLEManager::getInstance(){
 
 void BLEManager::processedCommandResponseCallback(const DeviceCommand& rsp){
 	dev_rsp = rsp;
-	ESP_LOGI(tag,"Response:%s",dev_rsp.value); 
+	if(dev_rsp.source == CmdSource::BT){
+		ESP_LOGI(tag,"Response:%s",dev_rsp.value); 
+	}
 }
 
 /**
